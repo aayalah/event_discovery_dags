@@ -79,7 +79,7 @@ def fetch_ticketmaster_pipeline():
             raise ValueError("Missing KAFKA_TOPIC environment variable")
     
         producer = get_kafka_producer()
-        producer.send(KAFKA_TOPIC, json.dumps(event).encode('utf-8'))
+        producer.send(KAFKA_TOPIC, event)
         producer.flush()
         producer.close()
 
