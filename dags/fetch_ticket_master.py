@@ -14,6 +14,18 @@ KAFKA_TOPIC = os.getenv("KAFKA_TOPIC")
 BASE_PATH = "/usr/local/airflow/data"   # this exists in your container
 FILENAME = "ticketmaster_events.json"
 
+def get_kafka_producer():
+    return KafkaProducer(
+        bootstrap_servers=[b.strip() for b in KAFKA_BROKERS.split(",") if b.strip()],
+        security_protocol="SSL",
+        ssl_cafile="/usr/local/airflow/certs/ca.pem",
+        ssl_certfile="/usr/local/airflow/certs/service.cert",
+        ssl_keyfile="/usr/local/airflow/certs/service.key",
+        value_serializer=lambda v: json.dumps(v).encode("utf-8"),
+        # optional: skip auto detection if needed
+        # api_version=(3, 7, 0),
+    )
+
 @dag(
     dag_id="fetch_ticketmaster_taskflow",
     start_date=datetime(2025, 11, 1),
@@ -65,9 +77,8 @@ def fetch_ticketmaster_pipeline():
             raise ValueError("Missing KAFKA_BROKERS environment variable")
         if not KAFKA_TOPIC:
             raise ValueError("Missing KAFKA_TOPIC environment variable")
-        
-        brokers = [b.strip() for b in KAFKA_BROKERS.split(",") if b.strip()]
-        producer = KafkaProducer(bootstrap_servers=brokers) # Replace with your Kafka broker address
+    
+        producer = get_kafka_producer()
         producer.send(KAFKA_TOPIC, json.dumps(event).encode('utf-8'))
         producer.flush()
         producer.close()
